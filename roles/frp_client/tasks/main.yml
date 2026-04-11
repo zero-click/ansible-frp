@@ -1,0 +1,20 @@
+---
+# FRP Client主任务文件
+
+- name: Set platform-specific paths
+  set_fact:
+    frp_install_dir: "{{ lookup('env', 'HOME') + '/.frp' if ansible_os_family == 'Darwin' else frp_install_dir }}"
+    frp_log_dir: "{{ lookup('env', 'HOME') + '/.frp/logs' if ansible_os_family == 'Darwin' else frp_log_dir }}"
+    frp_binary_path: "{{ frp_install_dir }}/frp_{{ frp_version }}_{{ frp_platform }}_{{ frp_arch }}/frpc"
+
+- name: Include installation tasks
+  include_tasks: install.yml
+  tags: ['install', 'client']
+
+- name: Include configuration tasks
+  include_tasks: configure.yml
+  tags: ['configure', 'client']
+
+- name: Include service tasks
+  include_tasks: service.yml
+  tags: ['service', 'client']

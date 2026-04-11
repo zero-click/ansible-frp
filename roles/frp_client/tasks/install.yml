@@ -1,0 +1,91 @@
+---
+# FRP Client安装任务
+
+- name: Display installation information
+  debug:
+    msg: "Installing FRP Client version {{ frp_version }} on {{ ansible_os_family }}"
+
+- name: Set platform-specific variables
+  set_fact:
+    frp_platform: "{{ 'darwin' if ansible_os_family == 'Darwin' else 'linux' }}"
+    frp_arch: "{{ 'arm64' if ansible_architecture == 'arm64' else 'amd64' }}"
+
+- name: Create frp system user (Linux)
+  user:
+    name: "{{ frp_client_user }}"
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+    state: present
+  when: ansible_os_family != "Darwin"
+
+- name: Create installation directory
+  file:
+    path: "{{ frp_install_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create log directory
+  file:
+    path: "{{ frp_log_dir }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ frp_client_user }}"
+    group: "{{ frp_client_user }}"
+  when: ansible_os_family != "Darwin"
+
+- name: Check if FRP is already installed
+  stat:
+    path: "{{ frp_install_dir }}/frp_{{ frp_version }}_{{ frp_platform }}_{{ frp_arch }}/frpc"
+  register: frp_installed
+
+- name: Show download URL
+  debug:
+    msg: "Downloading FRP from: {{ frp_download_url }}/frp_{{ frp_version }}_{{ frp_platform }}_{{ frp_arch }}.tar.gz"
+
+- name: Download FRP client archive
+  get_url:
+    url: "{{ frp_download_url }}/frp_{{ frp_version }}_{{ frp_platform }}_{{ frp_arch }}.tar.gz"
+    dest: /tmp/frp_client.tar.gz
+    mode: '0644'
+    timeout: 600
+    force: true
+  when: not frp_installed.stat.exists
+  register: download_result
+  until: download_result is succeeded
+  retries: 5
+  delay: 10
+
+- name: Extract FRP client archive (Linux)
+  unarchive:
+    src: /tmp/frp_client.tar.gz
+    dest: "{{ frp_install_dir }}"
+    remote_src: true
+    creates: "{{ frp_install_dir }}/frp_{{ frp_version }}_{{ frp_platform }}_{{ frp_arch }}/frpc"
+  when:
+    - not frp_installed.stat.exists
+    - ansible_os_family != "Darwin"
+
+- name: Extract FRP client archive to temp directory (macOS)
+  shell: |
+    mkdir -p /tmp/frp_install
+    cd /tmp/frp_install
+    tar -xzf /tmp/frp_client.tar.gz
+    /bin/cp -R frp_{{ frp_version }}_{{ frp_platform }}_{{ frp_arch }} "{{ frp_install_dir }}/"
+  args:
+    executable: /bin/bash
+  when:
+    - not frp_installed.stat.exists
+    - ansible_os_family == "Darwin"
+
+- name: Cleanup downloaded archive
+  file:
+    path: /tmp/frp_client.tar.gz
+    state: absent
+  when: not frp_installed.stat.exists
+
+- name: Verify frpc installation
+  command: "{{ frp_binary_path }} --version"
+  register: frpc_version_check
+  changed_when: false
+  failed_when: frpc_version_check.rc != 0

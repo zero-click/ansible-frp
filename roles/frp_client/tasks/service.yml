@@ -1,0 +1,48 @@
+---
+# FRP Client服务管理任务
+
+- name: Display service deployment information
+  debug:
+    msg: "Configuring FRP client service for {{ ansible_os_family }}"
+
+- name: Deploy systemd service file (Linux)
+  template:
+    src: frpc.service.j2
+    dest: /etc/systemd/system/frpc.service
+    mode: '0644'
+    owner: root
+    group: root
+    validate: 'systemd-analyze verify %s'
+  notify:
+    - reload systemd
+    - restart frpc
+  when: ansible_os_family != "Darwin"
+  become: true
+
+- name: Deploy launchd plist file (macOS)
+  template:
+    src: frpc.plist.j2
+    dest: "{{ frp_install_dir }}/frpc.plist"
+    mode: '0644'
+  notify: restart frpc
+  when: ansible_os_family == "Darwin"
+
+- name: Enable and start frpc service (Linux)
+  systemd:
+    name: frpc
+    enabled: "{{ frp_service_enabled | bool }}"
+    state: "{{ frp_service_state }}"
+    daemon_reload: true
+  when: ansible_os_family != "Darwin"
+  become: true
+
+- name: Enable and start frpc service (macOS)
+  command: launchctl load -w {{ frp_install_dir }}/frpc.plist
+  when:
+    - ansible_os_family == "Darwin"
+    - frp_service_enabled | bool
+  notify: start frpc
+
+- name: Display service information
+  debug:
+    msg: "FRP Client service configured and {{ frp_service_state }} on {{ ansible_os_family }}"

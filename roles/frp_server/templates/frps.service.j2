@@ -1,0 +1,19 @@
+[Unit]
+Description=Frp Server Service
+Documentation=https://github.com/fatedier/frp
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Restart=on-failure
+RestartSec=5s
+ExecStart={{ frp_install_dir }}/frp_{{ frp_version }}_linux_{{ frp_arch }}/frps -c {{ frp_install_dir }}/frps.toml
+LimitNOFILE=65536
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

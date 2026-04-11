@@ -1,0 +1,17 @@
+[Unit]
+Description=Frp Client Service
+Documentation=https://github.com/fatedier/frp
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Restart=on-failure
+RestartSec=5s
+ExecStart={{ frp_install_dir }}/frp_{{ frp_version }}_linux_{{ frp_arch | default('amd64') }}/frpc -c {{ frp_install_dir }}/frpc.ini
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

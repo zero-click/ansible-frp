@@ -1,0 +1,55 @@
+---
+# FRP Server默认变量
+
+# 架构配置
+# 支持: x86_64 (amd64), aarch64 (arm64), armv6l, armv7l
+# 默认fallback到amd64
+frp_arch: >-
+  {{ 'arm64' if ansible_architecture == 'aarch64'
+     else 'amd64' if ansible_architecture == 'x86_64'
+     else 'armv6l' if ansible_architecture == 'armv6l'
+     else 'armv7l' if ansible_architecture == 'armv7l'
+     else 'amd64' }}
+
+# 用户配置
+frp_server_user: frp
+
+# 端口配置
+frp_server_bind_port: 7000
+# vhost端口配置（如果不需要HTTP代理，可以注释掉）
+# frp_server_vhost_http_port: 80
+# frp_server_vhost_https_port: 443
+frp_server_dashboard_port: 7500
+
+# Dashboard配置
+# SECURITY WARNING: Always override these defaults in your playbook!
+# Empty credentials will expose your FRP server to unauthorized access.
+frp_server_dashboard_user: admin
+frp_server_dashboard_password: ""
+
+# Token认证
+# SECURITY WARNING: Always set a strong token in your playbook!
+# Empty token means no authentication - anyone can connect to your server.
+frp_server_token: ""
+
+# 连接池配置
+# 限制每个客户端可以创建的代理数量，防止资源耗尽
+frp_server_max_pool_count: 5
+
+# 日志配置
+frp_server_log_level: info
+frp_server_log_max_days: 7
+frp_server_log_file: "{{ frp_log_dir }}/frps.log"
+
+# 服务配置
+frp_service_enabled: true
+frp_service_state: started
+
+# 安装路径
+# Note: These are typically defined in group_vars/all.yml
+# Adding defaults here for role reusability
+frp_install_dir: /opt/frp
+frp_binary_dir: /usr/local/bin
+frp_log_dir: /var/log/frp
+frp_version: "0.68.0"
+frp_download_url: "https://github.com/fatedier/frp/releases/download/v{{ frp_version }}"

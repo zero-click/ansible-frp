@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.frp.client</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{ frp_binary_path }}</string>
+        <string>-c</string>
+        <string>{{ frp_install_dir }}/frpc.toml</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>{{ frp_log_dir }}/frpc.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>{{ frp_log_dir }}/frpc.log.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>{{ frp_install_dir }}:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>

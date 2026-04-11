@@ -1,0 +1,22 @@
+# FRP主机清单示例
+# 复制此文件为 hosts.ini 并填入你的实际配置
+
+# FRP服务器
+[frp_servers]
+vps ansible_host=YOUR_SERVER_IP
+
+# FRP客户端
+[frp_clients]
+localhost ansible_connection=local
+# 添加更多客户端：
+# home-mac ansible_host=192.168.1.100
+# office-pc ansible_host=192.168.1.101
+
+# Server端配置
+[frp_servers:vars]
+ansible_user=root
+ansible_python_interpreter=/usr/bin/python3
+
+# Client端配置
+[frp_clients:vars]
+ansible_user=YOUR_USERNAME

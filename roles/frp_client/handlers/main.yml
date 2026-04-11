@@ -1,0 +1,51 @@
+---
+# FRP Client handlers
+
+- name: reload systemd
+  systemd:
+    daemon_reload: true
+  when: ansible_os_family != "Darwin"
+  become: true
+
+- name: restart frpc (Linux)
+  systemd:
+    name: frpc
+    state: restarted
+  when: ansible_os_family != "Darwin"
+  become: true
+  listen: restart frpc
+
+- name: restart frpc (macOS)
+  shell: |
+    launchctl unload -w {{ frp_install_dir }}/frpc.plist 2>/dev/null || true
+    sleep 1
+    launchctl load -w {{ frp_install_dir }}/frpc.plist
+  when: ansible_os_family == "Darwin"
+  listen: restart frpc
+
+- name: start frpc (Linux)
+  systemd:
+    name: frpc
+    state: started
+    enabled: true
+  when: ansible_os_family != "Darwin"
+  become: true
+  listen: start frpc
+
+- name: start frpc (macOS)
+  command: launchctl load -w {{ frp_install_dir }}/frpc.plist
+  when: ansible_os_family == "Darwin"
+  listen: start frpc
+
+- name: stop frpc (Linux)
+  systemd:
+    name: frpc
+    state: stopped
+  when: ansible_os_family != "Darwin"
+  become: true
+  listen: stop frpc
+
+- name: stop frpc (macOS)
+  command: launchctl unload -w {{ frp_install_dir }}/frpc.plist
+  when: ansible_os_family == "Darwin"
+  listen: stop frpc

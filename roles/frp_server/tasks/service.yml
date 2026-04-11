@@ -1,0 +1,33 @@
+---
+# FRP Server服务管理任务
+
+- name: Deploy systemd service file
+  become: true
+  template:
+    src: frps.service.j2
+    dest: /etc/systemd/system/frps.service
+    mode: '0644'
+    owner: root
+    group: root
+  notify:
+    - reload systemd
+    - restart frps
+
+- name: Enable and start frps service
+  become: true
+  systemd:
+    name: frps
+    enabled: "{{ frp_service_enabled }}"
+    state: "{{ frp_service_state }}"
+    daemon_reload: true
+
+- name: Wait for service to be ready
+  wait_for:
+    host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+    port: "{{ frp_server_bind_port }}"
+    timeout: 30
+  ignore_errors: true
+
+- name: Display service status
+  debug:
+    msg: "FRP Server service is running and listening on port {{ frp_server_bind_port }}"

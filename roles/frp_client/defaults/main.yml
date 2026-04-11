@@ -1,0 +1,44 @@
+---
+# FRP Client默认变量
+
+# 安装配置
+# Note: These can be overridden in group_vars/all.yml or playbook
+frp_install_dir: /opt/frp
+frp_log_dir: /var/log/frp
+frp_version: "0.68.0"
+frp_download_url: "https://github.com/fatedier/frp/releases/download/v{{ frp_version }}"
+frp_download_mirror: ""  # 留空使用官方源，或设置镜像URL（不含文件名）
+
+# 校验和配置
+# 用于验证下载的完整性，格式为: sha256:<checksum_value>
+# 留空表示跳过校验（不推荐用于生产环境）
+# 示例: frp_checksum: "sha256:abc123..."
+frp_checksum: ""
+
+# 架构配置
+# 支持: x86_64 (amd64), aarch64 (arm64), armv6l, armv7l
+# 默认fallback到amd64
+frp_arch: >-
+  {{ 'arm64' if ansible_architecture == 'aarch64'
+     else 'amd64' if ansible_architecture == 'x86_64'
+     else 'armv6l' if ansible_architecture == 'armv6l'
+     else 'armv7l' if ansible_architecture == 'armv7l'
+     else 'amd64' }}
+
+# 用户配置
+frp_client_user: frp
+
+# Server连接配置
+frp_client_server_addr: "127.0.0.1"
+frp_client_server_port: 7000
+
+# Token认证
+frp_client_token: ""
+
+# 日志配置
+frp_client_log_file: "{{ frp_log_dir }}/frpc.log"
+frp_client_log_level: info
+frp_client_log_max_days: 3
+
+# 代理配置
+frp_client_proxies: []

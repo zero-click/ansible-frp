@@ -1,0 +1,133 @@
+---
+# FRP部署验证Playbook
+# 用法: ansible-playbook playbooks/verify.yml --vault-password-file .vault_pass
+
+- name: Verify FRP Server deployment
+  hosts: frp_servers
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check if frps process is running
+      shell: pgrep -f frps || true
+      register: frps_process
+      changed_when: false
+      failed_when: frps_process.rc != 0 or frps_process.stdout == ""
+
+    - name: Verify frps binary exists
+      stat:
+        path: "{{ frp_binary_dir }}/frps"
+      register: frps_binary
+      failed_when: not frps_binary.stat.exists
+
+    - name: Verify configuration file exists
+      stat:
+        path: "{{ frp_install_dir }}/frps.ini"
+      register: frps_config
+      failed_when: not frps_config.stat.exists
+
+    - name: Check server binding port
+      wait_for:
+        host: "{{ ansible_default_ipv4.address }}"
+        port: "{{ frp_server_bind_port }}"
+        timeout: 10
+      become: false
+
+    - name: Check dashboard port
+      wait_for:
+        host: "{{ ansible_default_ipv4.address }}"
+        port: "{{ frp_server_dashboard_port }}"
+        timeout: 10
+      become: false
+
+    - name: Get systemd service status
+      systemd:
+        name: frps
+      register: frps_service
+      failed_when: frps_service.status.ActiveState != "active"
+
+    - name: Display server verification results
+      debug:
+        msg: |
+          FRP Server verification passed!
+          ========================================
+          Process: Running (PID: {{ frps_process.stdout }})
+          Binary: {{ frps_binary.stat.path }}
+          Config: {{ frps_config.stat.path }}
+          Bind Port: {{ frp_server_bind_port }} (open)
+          Dashboard: {{ frp_server_dashboard_port }} (open)
+          Service: {{ frps_service.status.ActiveState }}
+
+          Access Dashboard: http://{{ ansible_default_ipv4.address }}:{{ frp_server_dashboard_port }}
+          User: {{ frp_server_dashboard_user }}
+
+- name: Verify FRP Client deployment
+  hosts: frp_clients
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check if frpc process is running (Linux)
+      shell: pgrep -f frpc || true
+      register: frpc_process
+      changed_when: false
+      when: ansible_os_family != "Darwin"
+
+    - name: Check if frpc process is running (macOS)
+      shell: launchctl list | grep frp || true
+      register: frpc_process
+      changed_when: false
+      when: ansible_os_family == "Darwin"
+      failed_when: frpc_process.rc != 0
+
+    - name: Verify frpc binary exists
+      stat:
+        path: "{{ frp_binary_dir }}/frpc"
+      register: frpc_binary
+      failed_when: not frpc_binary.stat.exists
+
+    - name: Verify configuration file exists
+      stat:
+        path: "{{ frp_install_dir }}/frpc.ini"
+      register: frpc_config
+      failed_when: not frpc_config.stat.exists
+
+    - name: Verify proxy count in configuration
+      command: grep -c "^\[" {{ frp_install_dir }}/frpc.ini
+      register: proxy_count
+      changed_when: false
+      failed_when: proxy_count.stdout | int < 2  # [common] + at least 1 proxy
+
+    - name: Get service status (Linux)
+      systemd:
+        name: frpc
+      register: frpc_service
+      when: ansible_os_family != "Darwin"
+      failed_when: frpc_service.status.ActiveState != "active"
+
+    - name: Get service status (macOS)
+      shell: launchctl list | grep "com.frp.client"
+      register: frpc_service
+      changed_when: false
+      when: ansible_os_family == "Darwin"
+      failed_when: frpc_service.rc != 0
+
+    - name: Display client verification results
+      debug:
+        msg: |
+          FRP Client verification passed!
+          ========================================
+          Platform: {{ ansible_os_family }}
+          Binary: {{ frpc_binary.stat.path }}
+          Config: {{ frpc_config.stat.path }}
+          Process: Running
+          {% if ansible_os_family != "Darwin" %}
+          Service: {{ frpc_service.status.ActiveState }}
+          {% else %}
+          Service: Loaded (launchd)
+          {% endif %}
+          Proxies configured: {{ proxy_count.stdout | int - 1 }}
+
+          Connected to: {{ frp_client_server_addr }}:{{ frp_client_server_port }}
+
+          Test SSH tunnel: ssh -p 6000 your_username@{{ frp_client_server_addr }}

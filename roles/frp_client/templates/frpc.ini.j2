@@ -1,0 +1,47 @@
+[common]
+# Server连接配置
+server_addr = {{ frp_client_server_addr }}
+server_port = {{ frp_client_server_port }}
+
+# Token认证
+authentication_method = token
+token = {{ frp_client_token }}
+
+# 日志配置
+log_file = {{ frp_client_log_file }}
+log_level = {{ frp_client_log_level }}
+log_max_days = {{ frp_client_log_max_days }}
+
+{% for proxy in frp_client_proxies %}
+[{{ proxy.name }}]
+type = {{ proxy.type }}
+local_ip = {{ proxy.local_ip }}
+local_port = {{ proxy.local_port }}
+{% if proxy.remote_port is defined %}
+remote_port = {{ proxy.remote_port }}
+{% endif %}
+{% if proxy.custom_domains is defined %}
+custom_domains = {{ proxy.custom_domains | join(',') }}
+{% endif %}
+{% if proxy.subdomain is defined %}
+subdomain = {{ proxy.subdomain }}
+{% endif %}
+{% if proxy.use_encryption is defined %}
+use_encryption = {{ proxy.use_encryption | lower }}
+{% endif %}
+{% if proxy.compression is defined %}
+compression = {{ proxy.compression | lower }}
+{% endif %}
+{% if proxy.health_check_type is defined %}
+health_check_type = {{ proxy.health_check_type }}
+{% endif %}
+{% if proxy.health_check_interval_s is defined %}
+health_check_interval_s = {{ proxy.health_check_interval_s }}
+{% endif %}
+{% if proxy.health_check_max_failed is defined %}
+health_check_max_failed = {{ proxy.health_check_max_failed }}
+{% endif %}
+{% if proxy.health_check_timeout_s is defined %}
+health_check_timeout_s = {{ proxy.health_check_timeout_s }}
+{% endif %}
+{% endfor %}

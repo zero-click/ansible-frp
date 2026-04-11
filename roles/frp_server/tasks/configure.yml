@@ -1,0 +1,28 @@
+---
+# FRP Server配置任务
+
+- name: Check if token is configured
+  debug:
+    msg: "WARNING: frp_server_token is empty! This is a security risk. Set a strong token in your playbook."
+  when: frp_server_token == ""
+  changed_when: false
+
+- name: Check if dashboard password is configured
+  debug:
+    msg: "WARNING: frp_server_dashboard_password is empty! This is a security risk. Set a strong password in your playbook."
+  when: frp_server_dashboard_password == ""
+  changed_when: false
+
+- name: Deploy frps configuration file
+  template:
+    src: frps.toml.j2
+    dest: "{{ frp_install_dir }}/frps.toml"
+    mode: '0640'
+    owner: root
+    group: root
+    backup: true
+  notify: restart frps
+
+- name: Display configuration location
+  debug:
+    msg: "FRP Server configuration deployed to {{ frp_install_dir }}/frps.toml"

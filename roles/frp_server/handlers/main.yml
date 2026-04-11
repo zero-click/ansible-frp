@@ -1,0 +1,27 @@
+---
+# FRP Server Handlers
+
+- name: restart frps
+  systemd:
+    name: frps
+    state: restarted
+    enabled: true
+  become: true
+
+- name: reload systemd
+  systemd:
+    daemon_reload: true
+  become: true
+
+- name: start frps
+  systemd:
+    name: frps
+    state: started
+    enabled: true
+  become: true
+
+- name: stop frps
+  systemd:
+    name: frps
+    state: stopped
+  become: true

@@ -1,0 +1,14 @@
+---
+# FRP Server主任务文件
+
+- name: Include installation tasks
+  include_tasks: install.yml
+  tags: ['install', 'server']
+
+- name: Include configuration tasks
+  include_tasks: configure.yml
+  tags: ['configure', 'server']
+
+- name: Include service tasks
+  include_tasks: service.yml
+  tags: ['service', 'server']

@@ -1,0 +1,77 @@
+---
+- name: Cleanup FRP Client
+  hosts: frp_clients
+  become: false
+  gather_facts: true
+
+  tasks:
+    - name: Display cleanup warning
+      debug:
+        msg: |
+          === FRP客户端清理 ===
+          此操作将删除所有FRP客户端配置和文件
+          包括：服务、配置、二进制文件、日志
+
+    - name: Stop frpc service (macOS)
+      command: launchctl unload -w {{ lookup('env', 'HOME') }}/.frp/frpc.plist
+      ignore_errors: true
+      when: ansible_os_family == "Darwin"
+
+    - name: Stop frpc service (Linux)
+      systemd:
+        name: frpc
+        state: stopped
+        enabled: false
+      ignore_errors: true
+      become: true
+      when: ansible_os_family != "Darwin"
+
+    - name: Remove systemd service file (Linux)
+      file:
+        path: /etc/systemd/system/frpc.service
+        state: absent
+      become: true
+      when: ansible_os_family != "Darwin"
+
+    - name: Reload systemd (Linux)
+      systemd:
+        daemon_reload: true
+      become: true
+      when: ansible_os_family != "Darwin"
+
+    - name: Remove installation directory (macOS)
+      file:
+        path: "{{ lookup('env', 'HOME') }}/.frp"
+        state: absent
+      when: ansible_os_family == "Darwin"
+
+    - name: Remove installation directory (Linux)
+      file:
+        path: /opt/frp
+        state: absent
+      become: true
+      when: ansible_os_family != "Darwin"
+
+    - name: Remove log directory (macOS)
+      file:
+        path: "{{ lookup('env', 'HOME') }}/.frp/logs"
+        state: absent
+      when: ansible_os_family == "Darwin"
+
+    - name: Remove log directory (Linux)
+      file:
+        path: /var/log/frp
+        state: absent
+      become: true
+      when: ansible_os_family != "Darwin"
+
+    - name: Display cleanup completion message
+      debug:
+        msg: |
+          === 清理完成 ===
+          已删除以下内容：
+          - frpc服务
+          - 安装目录（包含二进制文件和配置）
+          - 日志目录
+
+          现在可以运行部署客户端的命令

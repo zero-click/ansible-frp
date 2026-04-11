@@ -1,0 +1,9 @@
+---
+# FRP全量部署Playbook
+# 用法: ansible-playbook playbooks/site.yml --vault-password-file .vault_pass
+
+- name: Deploy FRP infrastructure
+  import_playbook: deploy-server.yml
+
+- name: Deploy FRP clients
+  import_playbook: deploy-client.yml

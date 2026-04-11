@@ -1,0 +1,64 @@
+---
+- name: Cleanup FRP Server
+  hosts: frp_servers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Display cleanup warning
+      debug:
+        msg: |
+          === FRP服务器端清理 ===
+          此操作将删除所有FRP服务器端配置和文件
+          包括：服务、配置、二进制文件、日志、用户
+
+    - name: Stop frps service
+      systemd:
+        name: frps
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Remove systemd service file
+      file:
+        path: /etc/systemd/system/frps.service
+        state: absent
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: true
+
+    - name: Remove installation directory
+      file:
+        path: /opt/frp
+        state: absent
+
+    - name: Remove binary file
+      file:
+        path: /usr/local/bin/frps
+        state: absent
+
+    - name: Remove log directory
+      file:
+        path: /var/log/frp
+        state: absent
+
+    - name: Remove frp user
+      user:
+        name: frp
+        state: absent
+      ignore_errors: true
+
+    - name: Display cleanup completion message
+      debug:
+        msg: |
+          === 清理完成 ===
+          已删除以下内容：
+          - frps服务
+          - /etc/systemd/system/frps.service
+          - /opt/frp
+          - /usr/local/bin/frps
+          - /var/log/frp
+          - frp用户
+
+          现在可以运行部署服务器端的命令

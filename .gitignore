@@ -1,0 +1,53 @@
+# Ansible
+*.retry
+.vault_pass
+.vault_pass_fixed
+.vaultpass
+.ansible_facts/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Git worktrees
+.worktrees/
+
+# 敏感配置文件（保留示例文件供开源使用）
+# 实际配置文件包含敏感信息，不应该提交到版本控制
+inventory/hosts.ini
+inventory/group_vars/frp_servers.yml
+inventory/group_vars/frp_clients.yml
+
+# 备份目录
+myconfig/
+
+# Claude Code配置
+.claude/
+
+# 临时文件
+tmp/
+*.backup
+claude.md
+GITHUB_PUSH_GUIDE.md
+
+# 不需要的文件
+docs/
+OPENSOURCE_CHECKLIST.md
+.vault_pass.example
+.vaultpass.example

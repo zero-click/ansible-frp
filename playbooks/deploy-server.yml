@@ -1,0 +1,76 @@
+---
+- name: Deploy FRP Server
+  hosts: frp_servers
+  become: true
+  gather_facts: true
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/frp_servers.yml
+
+  pre_tasks:
+    - name: Display deployment information
+      debug:
+        msg: |
+          Deploying FRP Server to {{ inventory_hostname }}
+          Version: {{ frp_version }}
+          Bind Port: {{ frp_server_bind_port }}
+          Dashboard Port: {{ frp_server_dashboard_port }}
+
+    - name: Verify required variables are set
+      assert:
+        that:
+          - frp_server_token is defined
+          - frp_server_token | length > 10
+          - frp_server_dashboard_password is defined
+          - frp_server_dashboard_password | length > 5
+        fail_msg: |
+          Required variables not set or too weak.
+          Please configure frp_server_token (min 10 chars) and
+          frp_server_dashboard_password (min 5 chars)
+        success_msg: "Variables validation passed"
+
+    - name: Display security warning
+      debug:
+        msg: |
+          SECURITY WARNING:
+          - Ensure frp_server_token is strong and unique
+          - Use ansible-vault to encrypt sensitive variables
+          - Change default passwords
+          - Configure firewall rules appropriately
+          - Review access control settings
+      when: not ansible_check_mode
+
+  roles:
+    - role: frp_server
+      tags: ['server', 'install', 'configure', 'service']
+
+  post_tasks:
+    - name: Wait for service to be ready
+      wait_for:
+        host: "{{ ansible_default_ipv4.address }}"
+        port: "{{ frp_server_bind_port }}"
+        timeout: 60
+      become: false
+
+    - name: Wait for dashboard port
+      wait_for:
+        host: "{{ ansible_default_ipv4.address }}"
+        port: "{{ frp_server_dashboard_port }}"
+        timeout: 30
+      become: false
+
+    - name: Display deployment summary
+      debug:
+        msg: |
+          FRP Server deployed successfully!
+          Host: {{ inventory_hostname }}
+          IP: {{ ansible_default_ipv4.address }}
+          Bind Port: {{ frp_server_bind_port }}
+          Dashboard: http://{{ ansible_default_ipv4.address }}:{{ frp_server_dashboard_port }}
+          Dashboard User: {{ frp_server_dashboard_user }}
+
+          Next steps:
+          1. Access dashboard at http://{{ ansible_default_ipv4.address }}:{{ frp_server_dashboard_port }}
+          2. Login with user: {{ frp_server_dashboard_user }}
+          3. Deploy clients using: ansible-playbook playbooks/deploy-client.yml

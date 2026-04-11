@@ -1,0 +1,31 @@
+---
+# FRP服务器端配置示例
+# 复制此文件为 frp_servers.yml 并填入你的实际配置
+
+# 服务器认证配置（使用ansible-vault加密）
+# 生成并加密token的方法：
+# TOKEN=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+# echo "$TOKEN" | ansible-vault encrypt_string --vault-password-file .vault_pass --name 'frp_server_token'
+frp_server_token: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          YOUR_ENCRYPTED_TOKEN_HERE
+
+# Dashboard配置
+frp_server_dashboard_user: admin
+frp_server_dashboard_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          YOUR_ENCRYPTED_PASSWORD_HERE
+
+# 端口配置
+frp_server_bind_port: 7000
+frp_server_dashboard_port: 7500
+
+# 可选：如果需要HTTP代理，取消注释以下配置
+# frp_server_vhost_http_port: 80
+# frp_server_vhost_https_port: 443
+
+# 安全提示：
+# 1. 使用强密码（至少12个字符）
+# 2. 定期更换token和密码
+# 3. 限制Dashboard访问IP
+# 4. 使用ansible-vault加密所有敏感信息

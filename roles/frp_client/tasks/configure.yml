@@ -1,0 +1,45 @@
+---
+# FRP Client配置任务
+
+- name: Display configuration deployment information
+  debug:
+    msg: "Deploying FRP client configuration with {{ frp_client_proxies | length }} proxy(s)"
+
+- name: Deploy frpc configuration file
+  template:
+    src: frpc.toml.j2
+    dest: "{{ frp_install_dir }}/frpc.toml"
+    mode: '0644'
+    backup: true
+    validate: "{{ frp_binary_path }} verify -c %s"
+  notify: restart frpc
+
+- name: Display security warning for plaintext configuration
+  debug:
+    msg: |
+      WARNING: Configuration file contains sensitive information in plaintext.
+      Ensure proper file permissions are set (0644) and consider
+      encrypting sensitive variables using ansible-vault.
+  when: not ansible_check_mode
+
+- name: Verify configuration has proxies defined
+  assert:
+    that:
+      - frp_client_proxies is defined
+      - frp_client_proxies | length > 0
+    fail_msg: |
+      No proxies defined in frp_client_proxies.
+      Please define at least one proxy in inventory/group_vars/frp_clients.yml
+    success_msg: "{{ frp_client_proxies | length }} proxy(s) configured"
+
+- name: Display configured proxies
+  debug:
+    msg: "{{ frp_client_proxies }}"
+  when: not ansible_check_mode
+
+- name: Validate frpc binary can verify configuration
+  command: "{{ frp_binary_path }} verify --help"
+  register: frpc_verify_check
+  changed_when: false
+  failed_when: frpc_verify_check.rc != 0
+  check_mode: false

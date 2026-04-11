@@ -1,0 +1,51 @@
+# FRP Client Configuration (TOML format)
+# FRP 0.68.0+
+
+# Server连接配置
+serverAddr = "{{ frp_client_server_addr }}"
+serverPort = {{ frp_client_server_port }}
+
+# Token认证
+auth.method = "token"
+auth.token = "{{ frp_client_token }}"
+
+# 日志配置
+log.to = "{{ frp_client_log_file }}"
+log.level = "{{ frp_client_log_level }}"
+log.maxDays = {{ frp_client_log_max_days }}
+
+{% for proxy in frp_client_proxies %}
+# Proxy: {{ proxy.name }}
+[[proxies]]
+name = "{{ proxy.name }}"
+type = "{{ proxy.type }}"
+localIP = "{{ proxy.local_ip }}"
+localPort = {{ proxy.local_port }}
+{% if proxy.remote_port is defined %}
+remotePort = {{ proxy.remote_port }}
+{% endif %}
+{% if proxy.custom_domains is defined %}
+customDomains = [{{ proxy.custom_domains | map('regex_replace', '^(.*)$', '"\\1"') | join(', ') }}]
+{% endif %}
+{% if proxy.subdomain is defined %}
+subdomain = "{{ proxy.subdomain }}"
+{% endif %}
+{% if proxy.use_encryption is defined %}
+useEncryption = {{ proxy.use_encryption | lower }}
+{% endif %}
+{% if proxy.compression is defined %}
+compression = {{ proxy.compression | lower }}
+{% endif %}
+{% if proxy.health_check_type is defined %}
+healthCheckType = "{{ proxy.health_check_type }}"
+{% endif %}
+{% if proxy.health_check_interval_s is defined %}
+healthCheckIntervalS = {{ proxy.health_check_interval_s }}
+{% endif %}
+{% if proxy.health_check_max_failed is defined %}
+healthCheckMaxFailed = {{ proxy.health_check_max_failed }}
+{% endif %}
+{% if proxy.health_check_timeout_s is defined %}
+healthCheckTimeoutS = {{ proxy.health_check_timeout_s }}
+{% endif %}
+{% endfor %}

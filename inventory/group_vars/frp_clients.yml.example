@@ -1,0 +1,51 @@
+---
+# FRP客户端配置示例
+# 复制此文件为 frp_clients.yml 并填入你的实际配置
+
+# 服务器连接配置
+frp_client_server_addr: "YOUR_SERVER_IP"
+frp_client_server_port: 7000
+
+# Token认证（必须与服务器端一致，使用ansible-vault加密）
+# 使用与服务器端相同的token：
+frp_client_token: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          YOUR_ENCRYPTED_TOKEN_HERE
+
+# 代理配置列表
+frp_client_proxies:
+  # SSH代理示例
+  - name: ssh
+    type: tcp
+    local_ip: "127.0.0.1"
+    local_port: 22
+    remote_port: 6000
+
+  # HTTP代理示例（取消注释并配置）
+  # - name: webapp
+  #   type: http
+  #   local_ip: "127.0.0.1"
+  #   local_port: 8080
+  #   custom_domains:
+  #     - app.yourdomain.com
+
+  # HTTPS代理示例（取消注释并配置）
+  # - name: secure_app
+  #   type: https
+  #   local_ip: "127.0.0.1"
+  #   local_port: 8443
+  #   custom_domains:
+  #     - secure.yourdomain.com
+
+# 用户配置（仅Linux需要）
+frp_client_user: frp
+
+# 服务配置
+frp_service_enabled: true
+frp_service_state: started
+
+# 安全提示：
+# 1. 只暴露必要的端口和服务
+# 2. 使用强密码保护本地服务
+# 3. 定期检查代理连接日志
+# 4. 避免暴露数据库等敏感服务

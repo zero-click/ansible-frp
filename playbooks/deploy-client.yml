@@ -1,0 +1,91 @@
+---
+- name: Deploy FRP Client
+  hosts: frp_clients
+  gather_facts: true
+
+  vars_files:
+    - inventory/group_vars/all.yml
+    - inventory/group_vars/frp_clients.yml
+
+  pre_tasks:
+    - name: Display deployment information
+      debug:
+        msg: |
+          Deploying FRP Client to {{ inventory_hostname }}
+          Platform: {{ ansible_os_family }}
+          Architecture: {{ ansible_architecture }}
+          Server: {{ frp_client_server_addr }}:{{ frp_client_server_port }}
+
+    - name: Verify required variables are set
+      assert:
+        that:
+          - frp_client_token is defined
+          - frp_client_token | length > 10
+          - frp_client_server_addr is defined
+          - frp_client_server_addr != "your_server_ip"
+          - frp_client_proxies is defined
+          - frp_client_proxies | length > 0
+        fail_msg: |
+          Required variables not set or invalid.
+          Please configure:
+          - frp_client_token (min 10 chars, must match server)
+          - frp_client_server_addr (actual server IP)
+          - frp_client_proxies (at least one proxy defined)
+        success_msg: "Variables validation passed"
+
+    - name: Display proxy configuration summary
+      debug:
+        msg: "{{ frp_client_proxies }}"
+
+    - name: Display security warning
+      debug:
+        msg: |
+          SECURITY WARNING:
+          - Token must match server token exactly
+          - Use ansible-vault to encrypt sensitive variables
+          - Only expose necessary services
+          - Review proxy configurations for security
+      when: not ansible_check_mode
+
+  roles:
+    - role: frp_client
+      tags: ['client', 'install', 'configure', 'service']
+
+  post_tasks:
+    - name: Wait for client to connect to server
+      wait_for:
+        host: "{{ frp_client_server_addr }}"
+        port: "{{ frp_client_server_port }}"
+        timeout: 30
+      delegate_to: localhost
+      become: false
+      ignore_errors: true
+
+    - name: Display deployment summary
+      debug:
+        msg: |
+          FRP Client deployed successfully!
+          Host: {{ inventory_hostname }}
+          Platform: {{ ansible_os_family }}
+          Server: {{ frp_client_server_addr }}:{{ frp_client_server_port }}
+
+          Configured Proxies:
+          {% for proxy in frp_client_proxies %}
+          - {{ proxy.name }} ({{ proxy.type }})
+          {% if proxy.remote_port is defined %}
+            Remote Port: {{ proxy.remote_port }}
+            Access: ssh -p {{ proxy.remote_port }} your_username@{{ frp_client_server_addr }}
+          {% endif %}
+          {% if proxy.custom_domains is defined %}
+            Custom Domains: {{ proxy.custom_domains | join(', ') }}
+            Access: http://{{ proxy.custom_domains[0] }}
+          {% endif %}
+          {% if proxy.local_port is defined %}
+            Local: {{ proxy.local_ip | default('127.0.0.1') }}:{{ proxy.local_port }}
+          {% endif %}
+          {% endfor %}
+
+          Next steps:
+          1. Verify client is connected: check server dashboard
+          2. Test proxy connections using commands above
+          3. Check logs: tail -f {{ frp_client_log_file }}

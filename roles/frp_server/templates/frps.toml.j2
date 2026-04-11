@@ -1,0 +1,44 @@
+# FRP Server Configuration (TOML format)
+# FRP 0.68.0+
+
+# Server绑定配置
+bindAddr = "0.0.0.0"
+bindPort = {{ frp_server_bind_port }}
+
+{% if frp_server_vhost_http_port is defined %}
+# 虚拟主机HTTP端口
+vhostHTTPPort = {{ frp_server_vhost_http_port }}
+{% endif %}
+{% if frp_server_vhost_https_port is defined %}
+# 虚拟主机HTTPS端口
+vhostHTTPSPort = {{ frp_server_vhost_https_port }}
+{% endif %}
+
+# Dashboard配置
+webServer.addr = "0.0.0.0"
+webServer.port = {{ frp_server_dashboard_port }}
+webServer.user = "{{ frp_server_dashboard_user }}"
+webServer.password = "{{ frp_server_dashboard_password }}"
+
+# Token认证
+auth.method = "token"
+auth.token = "{{ frp_server_token }}"
+
+# 日志配置
+log.to = "{{ frp_server_log_file }}"
+log.level = "{{ frp_server_log_level }}"
+log.maxDays = {{ frp_server_log_max_days }}
+
+# 连接池配置
+# 限制每个客户端可以创建的代理数量，防止资源耗尽
+transport.maxPoolCount = {{ frp_server_max_pool_count }}
+{% if frp_server_allowed_ports is defined %}
+
+# 访问控制
+# 注意: TOML格式中端口范围应该使用数组格式
+transport.allowPorts = [
+{% for port_range in frp_server_allowed_ports %}
+  "{{ port_range }}",
+{% endfor %}
+]
+{% endif %}

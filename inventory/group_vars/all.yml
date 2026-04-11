@@ -1,0 +1,25 @@
+---
+# FRP版本配置
+frp_version: "0.68.0"
+frp_download_url: "https://github.com/fatedier/frp/releases/download/v{{ frp_version }}"
+# FRP校验和配置（用于验证下载的二进制文件完整性）
+# 格式要求: "algorithm:checksum" (例如: "sha256:a1b2c3d4...")
+#
+# 获取方式:
+#   1. 访问 https://github.com/fatedier/frp/releases/tag/v0.53.2
+#   2. 下载对应架构的 .sha256 文件
+#   3. 将内容格式化为 "sha256:<checksum>" 格式
+#
+# 安全警告: 留空将跳过校验和验证，存在安全风险！生产环境必须提供正确的校验和
+frp_checksum: ""  # 示例: "sha256:6f3b5c8a9d2e1f4a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0"
+
+# 安装路径配置
+frp_install_dir: /opt/frp
+frp_binary_dir: /usr/local/bin
+
+# 服务管理配置
+frp_service_enabled: true
+frp_service_state: started
+
+# 日志配置
+frp_log_dir: /var/log/frp

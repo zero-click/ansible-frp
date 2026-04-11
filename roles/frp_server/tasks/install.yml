@@ -1,0 +1,73 @@
+---
+# FRP Server安装任务
+
+- name: Display installation information
+  debug:
+    msg: "Installing FRP Server version {{ frp_version }}"
+
+- name: Create frp system user
+  user:
+    name: "{{ frp_server_user }}"
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+    state: present
+
+- name: Create installation directory
+  file:
+    path: "{{ frp_install_dir }}"
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Create log directory
+  file:
+    path: "{{ frp_log_dir }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ frp_server_user }}"
+    group: "{{ frp_server_user }}"
+
+- name: Check if FRP is already installed
+  stat:
+    path: "{{ frp_install_dir }}/frp_{{ frp_version }}_linux_{{ frp_arch }}/frps"
+  register: frp_installed
+
+- name: Download FRP server archive
+  get_url:
+    url: "{{ frp_download_url }}/frp_{{ frp_version }}_linux_{{ frp_arch }}.tar.gz"
+    dest: /tmp/frp_{{ frp_version }}_linux_{{ frp_arch }}.tar.gz
+    mode: '0644'
+    checksum: "{{ frp_checksum }}"
+    timeout: 300
+  environment:
+    https_proxy: "{{ frp_download_proxy | default(omit) }}"
+    http_proxy: "{{ frp_download_proxy | default(omit) }}"
+  when: not frp_installed.stat.exists
+
+- name: Extract FRP server archive
+  unarchive:
+    src: /tmp/frp_{{ frp_version }}_linux_{{ frp_arch }}.tar.gz
+    dest: "{{ frp_install_dir }}"
+    remote_src: true
+    creates: "{{ frp_install_dir }}/frp_{{ frp_version }}_linux_{{ frp_arch }}/frps"
+  when: not frp_installed.stat.exists
+
+- name: Create symlink to frps binary
+  file:
+    src: "{{ frp_install_dir }}/frp_{{ frp_version }}_linux_{{ frp_arch }}/frps"
+    dest: "{{ frp_binary_dir }}/frps"
+    state: link
+
+- name: Cleanup downloaded archive
+  file:
+    path: /tmp/frp_{{ frp_version }}_linux_{{ frp_arch }}.tar.gz
+    state: absent
+  when: not frp_installed.stat.exists
+
+- name: Verify frps installation
+  command: "{{ frp_binary_dir }}/frps --version"
+  register: frps_version_check
+  changed_when: false
+  failed_when: frps_version_check.rc != 0

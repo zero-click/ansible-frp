@@ -1,0 +1,140 @@
+---
+# FRP测试Playbook
+# 用于验证配置和功能
+
+- name: Test FRP deployment
+  hosts: frp_servers, frp_clients
+  become: true
+  gather_facts: true
+
+  vars_files:
+    - test_vars.yml
+
+  pre_tasks:
+    - name: Display test mode information
+      debug:
+        msg: "Running in TEST MODE - No actual changes will be made"
+      when: test_mode is defined and test_mode
+
+  tasks:
+    - name: Check if FRP is installed
+      stat:
+        path: "{{ frp_binary_dir }}/frp{{ 's' if inventory_hostname in groups['frp_servers'] else 'c' }}"
+      register: frp_binary
+      check_mode: false
+
+    - name: Verify FRP installation
+      assert:
+        that:
+          - frp_binary.stat.exists
+        fail_msg: "FRP binary not found"
+        success_msg: "FRP binary found"
+
+    - name: Check configuration file
+      stat:
+        path: "{{ frp_install_dir }}/frp{{ 's' if inventory_hostname in groups['frp_servers'] else 'c' }}.ini"
+      register: frp_config
+      check_mode: false
+
+    - name: Verify configuration file exists
+      assert:
+        that:
+          - frp_config.stat.exists
+        fail_msg: "Configuration file not found"
+        success_msg: "Configuration file found"
+
+- name: Test SSH tunnel scenario
+  hosts: frp_clients
+  become: false
+  gather_facts: false
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - name: Find SSH proxy configuration
+      set_fact:
+        ssh_proxy: "{{ frp_client_proxies | selectattr('type', 'equalto', 'tcp') | selectattr('name', 'equalto', 'ssh') | first }}"
+      when:
+        - frp_client_proxies is defined
+        - test_scenarios is defined
+        - test_scenarios | selectattr('name', 'equalto', 'ssh_tunnel') | selectattr('enabled', 'equalto', true) | list | length > 0
+
+    - name: Display SSH tunnel information
+      debug:
+        msg: |
+          SSH Tunnel Configuration:
+          - Name: {{ ssh_proxy.name }}
+          - Local: {{ ssh_proxy.local_ip }}:{{ ssh_proxy.local_port }}
+          - Remote Port: {{ ssh_proxy.remote_port }}
+          - Test Command: ssh -p {{ ssh_proxy.remote_port }} {{ ssh_test_user }}@{{ frp_client_server_addr }}
+      when:
+        - ssh_proxy is defined
+        - test_mode is not defined
+
+- name: Test HTTP proxy scenario
+  hosts: frp_clients
+  become: false
+  gather_facts: false
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - name: Find HTTP proxy configurations
+      set_fact:
+        http_proxies: "{{ frp_client_proxies | selectattr('type', 'equalto', 'http') | list }}"
+      when:
+        - frp_client_proxies is defined
+        - test_scenarios is defined
+        - test_scenarios | selectattr('name', 'equalto', 'http_proxy') | selectattr('enabled', 'equalto', true) | list | length > 0
+
+    - name: Display HTTP proxy information
+      debug:
+        msg: "{{ http_proxies }}"
+      when:
+        - http_proxies is defined
+        - http_proxies | length > 0
+
+- name: Test connectivity
+  hosts: frp_clients
+  become: false
+  gather_facts: false
+
+  vars_files:
+    - test_vars.yml
+
+  tasks:
+    - name: Test connection to server
+      wait_for:
+        host: "{{ frp_client_server_addr }}"
+        port: "{{ frp_client_server_port }}"
+        timeout: "{{ connection_test_timeout }}"
+      delegate_to: localhost
+      when:
+        - test_mode is not defined
+      register: connectivity_test
+
+    - name: Display connectivity result
+      debug:
+        msg: "Successfully connected to {{ frp_client_server_addr }}:{{ frp_client_server_port }}"
+      when:
+        - connectivity_test is defined
+        - connectivity_test.elapsed >= 0
+
+- name: Display test summary
+      hosts: localhost
+      gather_facts: false
+
+      tasks:
+        - name: Test completed
+          debug:
+            msg: |
+              FRP deployment tests completed!
+              Review the output above for any failures.
+
+              To run full deployment:
+              ansible-playbook playbooks/site.yml -i inventory/hosts.ini --vault-password-file .vault_pass
+
+              To verify deployment:
+              ansible-playbook playbooks/verify.yml -i inventory/hosts.ini --vault-password-file .vault_pass
